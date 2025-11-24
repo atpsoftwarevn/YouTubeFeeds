@@ -1,8 +1,6 @@
 import config from "./env.ts";
 import { Bot, GrammyError, HttpError, InlineKeyboard } from "grammy/mod.ts";
 import { parseFeed } from "rss";
-import { cron } from "cron";
-
 import {
   addFeed,
   getAllFeeds,
@@ -10,9 +8,7 @@ import {
   removeFeed,
   storeLatest,
 } from "./db.ts";
-
 export const bot = new Bot(config.BOT_TOKEN);
-
 bot.catch((err) => {
   const ctx = err.ctx;
   console.error(`Error while handling update ${ctx.update.update_id}:`);
@@ -25,17 +21,14 @@ bot.catch((err) => {
     console.error("Unknown error:", e);
   }
 });
-
 await bot.init();
 export default bot;
 const OWNERS: number[] = [];
 for (const owner of config.OWNERS.split(" ")) {
   OWNERS.push(parseInt(owner));
 }
-
 async function matchChannelId(userName: string) {
   const url = "https://www.youtube.com/" + userName;
-
   const res = await fetch(url);
   const text = await res.text();
   const reg = new RegExp(
@@ -49,14 +42,11 @@ async function matchChannelId(userName: string) {
 }
 const errorMsg =
   "Please provide a channel link or username.\nEg: - `/add https://www.youtube.com/channel/UCykFIBKkj5ce3SggtaYSwtQ`\n- `/add @xditya`";
-
 bot.command("start", async (ctx) => {
   await ctx.reply(
     `
 Hey ${ctx.from!.first_name}!
-
 I'm a YouTube feeds bot. I can send you the latest videos from your favorite YouTube channels.
-
 Please deploy your own instance of the bot to use it. Find the repository in the button below.
 `,
     {
@@ -73,7 +63,6 @@ Please deploy your own instance of the bot to use it. Find the repository in the
     );
   }
 });
-
 bot
   .filter((ctx) => OWNERS.includes(ctx.from!.id))
   .command("add", async (ctx) => {
@@ -138,7 +127,6 @@ bot
       return;
     }
   });
-
 bot
   .filter((ctx) => OWNERS.includes(ctx.from!.id))
   .command("list", async (ctx) => {
@@ -180,7 +168,6 @@ bot
       { reply_markup: buttons },
     );
   });
-
 bot
   .filter((ctx) => OWNERS.includes(ctx.from!.id))
   .callbackQuery(/rem(.*)/, async (ctx) => {
@@ -192,8 +179,7 @@ bot
     );
     await removeFeed(ctx.chat!.id, ctx.match?.[1] ?? "");
   });
-
-async function postFeeds() {
+export async function postFeeds() {
   const allFeeds = await getAllFeeds();
   for (const channelID in allFeeds) {
     try {
@@ -221,8 +207,3 @@ async function postFeeds() {
     }
   }
 }
-
-// Run Job in every 15 minutes
-cron("1 */15 * * * *", () => {
-  postFeeds();
-});
